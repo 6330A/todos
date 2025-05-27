@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>todos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #374151;
+            max-width: 640px;
+            margin: 0 auto;
+            background-color: #FFF7F3;
+        }
+
+        h1 {
+            font-size: 58px;
+            text-align: center;
+            color: #FC7B5A;
+        }
+
+        #todo-input {
+            width: 100%;
+            padding: 10px;
+            padding-left: 50px;
+            padding-right: 50px;
+            max-lines: 1;
+            font-size: 20px;
+            box-sizing: border-box;
+            border: none;
+            border-bottom: 1px solid #e0e0e0;
+
+        }
+
+        #todo-input:focus {
+            outline: none;
+        }
+
+        #todo-input::placeholder {
+            color: #838282;
+        }
+
+        .todo-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            gap: 12px;
+            width: 100%;
+            background-color: #fff;
+            box-sizing: border-box;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            margin-right: 12px;
+            cursor: pointer;
+        }
+
+        .checkbox-container input {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 4px;
+            margin-right: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .checkbox-container input:checked {
+            background-color: #10b981;
+            border-color: #10b981;
+        }
+
+        .checkbox-container input:checked::after {
+            content: '✓';
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .task-text {
+            flex: 1;
+            font-size: 20px;
+            color: #374151;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .checkbox-container input:checked+.task-text {
+            text-decoration: line-through;
+            color: #9ca3af;
+        }
+
+        /* 右侧删除按钮 */
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            padding: 4px;
+            opacity: 0.7;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 50%;
+        }
+
+        .delete-btn:hover {
+            background-color: #FFF1EB;
+            opacity: 1;
+        }
+
+        .delete-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .filters {
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .filters span {
+            padding: 3px 8px;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .filters .select {
+            display: flex;
+            gap: 10px;
+        }
+
+        .filters a {
+            font-size: 16px;
+            padding: 3px 8px;
+            text-decoration: none;
+            color: #333;
+            border-radius: 3px;
+        }
+
+        .filters a.active {
+            background-color: #F7A179;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>todos</h1>
+
+    <div>
+        <input type="text" id="todo-input" placeholder="Add new task..." maxlength="26">
+    </div>
+
+    <div id="todo-list">
+        <li class="todo-item">
+            <label class="checkbox-container">
+                <input type="checkbox">
+                <span class="task-text">完成本周工作报告</span>
+            </label>
+            <button class="delete-btn">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6 18L18 6M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+            </button>
+        </li>
+        <li class="todo-item">
+            <label class="checkbox-container">
+                <input type="checkbox">
+                <span class="task-text">完成本周工作报告</span>
+            </label>
+            <button class="delete-btn">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6 18L18 6M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+            </button>
+        </li>
+    </div>
+
+    <div class="filters">
+        <a class="itemCount">0 items left</a>
+        <div class="select">
+            <a href="#/" data-filter="all" class="active">All</a>
+            <a href="#/active" data-filter="active">Active</a>
+            <a href="#/completed" data-filter="completed">Completed</a>
+        </div>
+        <!-- 使用 href="javascript:void(0)" 保留清除链接的小手样式 -->
+        <a class="completedCount" href="javascript:void(0)">Clear completed[1]</a>
+    </div>
+    <script>
+        const input = document.getElementById('todo-input');
+        const todoList = document.getElementById('todo-list');
+        const filterLinks = document.querySelectorAll('.filters .select a');
+
+        const itemCount = document.querySelector('.filters .itemCount');
+        const completedCount = document.querySelector('.filters .completedCount');
+
+        // 当前筛选状态
+        let currentFilter = 'all';
+
+        // 任务列表数据
+        let todos = localStorage.getItem('todos');
+        if (todos) {
+            todos = JSON.parse(todos);
+        } else {
+            todos = [];
+        }
+
+        // let todos = [
+        //     {
+        //         id: 1748320044739,
+        //         text: '完成本周工作报告',
+        //         done: false
+        //     },
+        //     {
+        //         id: 1348320044739,
+        //         text: '准备下周会议材料',
+        //         done: true
+        //     },
+        //     {
+        //         id: 1448320044780,
+        //         text: '更新项目进度文档',
+        //         done: false
+        //     }
+        // ]
+
+        // 渲染任务列表
+        function renderTodos() {
+            // 根据当前筛选条件过滤任务
+            let filteredTodos = todos;
+            if (currentFilter === 'active') {
+                filteredTodos = todos.filter(todo => !todo.done);
+            } else if (currentFilter === 'completed') {
+                filteredTodos = todos.filter(todo => todo.done);
+            }
+
+            // filteredTodos.forEach(todo => {
+            //     console.log(todo.id, todo.text, todo.done);
+            // });
+            // console.log('-----')
+
+            todoList.innerHTML = filteredTodos.map((todo, index) =>
+                `
+                <li class="todo-item">
+                    <label class="checkbox-container">
+                        <input type="checkbox" ${todo.done ? 'checked' : ''} onchange="toggleComplete(${todo.id})">
+                        <span class="task-text">${todo.text}</span>
+                    </label>
+                    <button class="delete-btn" onclick="deleteTodo(${todo.id})">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M6 18L18 6M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                    </button>
+                </li>
+                `
+            ).join('');
+
+            // 更新筛选链接的激活状态
+            filterLinks.forEach(link => {
+                if (link.getAttribute('data-filter') === currentFilter) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+
+            updateItemCount();
+            updateCompletedCount();
+        }
+
+        // 添加新任务
+        function addTodo() {
+            const text = input.value.trim();
+            if (text === '') return;
+
+            todos.push({
+                id: Date.now(), // 使用时间戳作为唯一ID
+                text,
+                done: false
+            });
+
+            input.value = '';
+            renderTodos();
+            updateURL();
+            localStorage.setItem('todos', JSON.stringify(todos)); // 保存到本地存储
+        }
+
+        // 删除任务
+        function deleteTodo(id) {
+            let index = todos.findIndex(todo => todo.id === id);
+            todos.splice(index, 1);
+            renderTodos();
+            updateURL();
+            localStorage.setItem('todos', JSON.stringify(todos)); // 保存到本地存储
+        }
+
+        // 切换任务完成状态
+        function toggleComplete(id) {
+            let index = todos.findIndex(todo => todo.id === id);
+            todos[index].done = !todos[index].done;
+            renderTodos();
+            updateURL();
+            localStorage.setItem('todos', JSON.stringify(todos)); // 保存到本地存储
+        }
+
+        // 切换筛选状态
+        function setFilter(filter) {
+            currentFilter = filter;
+            renderTodos();
+            updateURL();
+        }
+
+        // 更新URL哈希值
+        function updateURL() {
+            window.location.hash = currentFilter === 'all' ? '/' : `/${currentFilter}`;
+        }
+
+        // 从URL哈希值获取筛选状态
+        function getFilterFromHash() {
+            const hash = window.location.hash;
+            if (hash === '#/active') return 'active';
+            if (hash === '#/completed') return 'completed';
+            return 'all';
+        }
+
+        // 更新未完成任务计数
+        function updateItemCount() {
+            const count = todos.filter(todo => !todo.done).length;
+            itemCount.textContent = `${count} items left`;
+        }
+
+        // 更新已完成任务计数
+        function updateCompletedCount() {
+            const count = todos.filter(todo => todo.done).length;
+            completedCount.text = `Clear completed[${count}]`;
+        }
+
+        // 绑定事件
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addTodo();
+        });
+
+        // 筛选链接点击事件
+        filterLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const filter = link.getAttribute('data-filter');
+                setFilter(filter);
+            });
+        });
+
+        // 清除已完成任务
+        completedCount.addEventListener('click', () => {
+            todos = todos.filter(todo => !todo.done);
+            renderTodos();
+            updateURL();
+            localStorage.setItem('todos', JSON.stringify(todos)); // 保存到本地存储
+        });
+
+        // 监听URL哈希值变化，不使用了，避免重复渲染
+        // window.addEventListener('hashchange', () => {
+        //     currentFilter = getFilterFromHash();
+        //     renderTodos();
+        // });
+
+        // 初始化
+        currentFilter = getFilterFromHash();
+        renderTodos();
+    </script>
+</body>
+
+</html>
